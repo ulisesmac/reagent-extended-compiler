@@ -113,10 +113,10 @@
   (cond
     (string/includes? tag "/")
     (let [[lib component] (string/split tag #"/")]
-      (gobj/get (gobj/get project-libs lib) (string/capitalize component)))
+      (gobj/get (gobj/get project-libs lib) component))
 
     (.hasOwnProperty project-libs "root")
-    (gobj/get (.-root project-libs) (string/capitalize tag))
+    (gobj/get (.-root project-libs) tag)
 
     :else
     tag))
@@ -125,7 +125,7 @@
 
 (defrecord ExtendedCompiler
   [id fn-to-element parse-fn
-   ^js/Object project-libs convert-props-in-vectors?]
+   ^js/Object project-libs convert-props-in-vectors? kebab-case-component-names?]
   p/Compiler
   (get-id [this] id)
   (parse-tag [this tag-name tag-value]
