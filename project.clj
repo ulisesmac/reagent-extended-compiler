@@ -9,7 +9,6 @@
                                   [camel-snake-kebab "0.4.3"]
                                   [org.clojure/clojure "1.11.1"]
                                   [org.clojure/clojurescript "1.11.132"]
-                                  [applied-science/js-interop "0.4.2"]
                                   [reagent "1.2.0"]]}}
   :cljsbuild {:builds [{:source-paths ["src"]
                         :compiler     {:optimizations :whitespace

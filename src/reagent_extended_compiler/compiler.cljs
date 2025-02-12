@@ -3,6 +3,7 @@
             [goog.object :as gobj]
             [reagent-extended-compiler.prop-converter :as prop-converter]
             [reagent-extended-compiler.protocols :as ep]
+            [camel-snake-kebab.core :as csk]
             [reagent.debug :refer-macros [dev? warn]]
             [reagent.impl.component :as comp]
             [reagent.impl.input :as input]
@@ -109,23 +110,28 @@
       (gobj/set t/tag-name-cache x v)
       v)))
 
-(defn get-component-from-lib [project-libs tag]
-  (cond
-    (string/includes? tag "/")
-    (let [[lib component] (string/split tag #"/")]
-      (gobj/get (gobj/get project-libs lib) component))
+(def get-component-from-lib-memo
+  (memoize
+   (fn [this tag kebab-case-names?]
+     (time
+      (cond
+        (string/includes? tag "/")
+        (let [[lib component-name] (string/split tag #"/")]
+          (gobj/get (gobj/get (ep/js-component-libs this) lib) (if kebab-case-names?
+                                                                 (csk/->PascalCase component-name)
+                                                                 component-name)))
 
-    (.hasOwnProperty project-libs "root")
-    (gobj/get (.-root project-libs) tag)
+        (.hasOwnProperty (ep/js-component-libs this) "root")
+        (gobj/get (.-root (ep/js-component-libs this)) (if kebab-case-names?
+                                                         (csk/->PascalCase tag)
+                                                         tag))
 
-    :else
-    tag))
-
-(def get-component-from-lib-memo (memoize get-component-from-lib))
+        :else
+        tag)))))
 
 (defrecord ExtendedCompiler
   [id fn-to-element parse-fn
-   ^js/Object project-libs convert-props-in-vectors? kebab-case-component-names?]
+   ^js/Object js-component-libs convert-props-in-vectors? kebab-case-component-names?]
   p/Compiler
   (get-id [this] id)
   (parse-tag [this tag-name tag-value]
@@ -136,8 +142,11 @@
     (t/make-element this argv component jsprops first-child))
 
   ep/ExtendedCompiler
+  (js-component-libs [this]
+   js-component-libs)
+
   (get-component-from-lib [this tag]
-    (get-component-from-lib-memo project-libs tag))
+    (get-component-from-lib-memo this tag kebab-case-component-names?))
 
   (convert-props-in-vectors? [this]
     convert-props-in-vectors?))
