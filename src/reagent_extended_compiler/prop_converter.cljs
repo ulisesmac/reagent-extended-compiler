@@ -7,35 +7,39 @@
 
 (declare convert-prop-value)
 
-(defn kv-conv [o k v]
+(defn kv-conv [compiler convert-in-vector? o k v]
   (doto o
-    (gobj/set (t/cached-prop-name k) (convert-prop-value v))))
+    (gobj/set (t/cached-prop-name k) (if (or convert-in-vector?
+                                             (contains? (ep/convert-props-in-vectors compiler) k))
+                                       (convert-prop-value compiler v true)
+                                       (convert-prop-value compiler v false)))))
 
-(defn convert-prop-value [x]
+(defn convert-prop-value [compiler x convert-in-vector?]
   (cond
     (util/js-val? x) x
     (util/named? x) (name x)
-    (map? x) (reduce-kv kv-conv #js {} x)
-    (vector? x) (extended.utils/map-array convert-prop-value x)
+    (map? x) (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
+    (and convert-in-vector? (vector? x)) (extended.utils/map-array #(convert-prop-value compiler % true) x)
     (coll? x) (clj->js x)
     (ifn? x) (fn [& args]
                (apply x args))
     :else (clj->js x)))
 
-(defn custom-kv-conv [o k v]
+(defn custom-kv-conv [compiler o k v]
   (doto o
-    (gobj/set (t/cached-custom-prop-name k) (convert-prop-value v))))
+    (gobj/set (t/cached-custom-prop-name k) (if (contains? (ep/convert-props-in-vectors compiler) k)
+                                              (convert-prop-value compiler v true)
+                                              (convert-prop-value compiler v false)))))
 
-(defn convert-custom-prop-value [x]
+(defn convert-custom-prop-value [compiler x]
   (cond
     (util/js-val? x) x
-    (util/named? x) (name x)
-    (map? x) (reduce-kv custom-kv-conv #js{} x)
-    (vector? x) (extended.utils/map-array convert-custom-prop-value x)
-    (coll? x) (clj->js x)
-    (ifn? x) (fn [& args]
-               (apply x args))
-    :else (clj->js x)))
+    (util/named? x)  (name x)
+    (map? x)         (reduce-kv (partial custom-kv-conv compiler) #js{} x)
+    (coll? x)        (clj->js x)
+    (ifn? x)         (fn [& args]
+                       (apply x args))
+    :else            (clj->js x)))
 
 
 (defn convert-props [props ^clj id-class compiler]
@@ -45,14 +49,14 @@
                   (t/set-id-class id-class))]
     (cond
       (and (.-custom id-class)
-           (ep/convert-props-in-vectors? compiler))
-      (convert-custom-prop-value props)
+           (some? (ep/convert-props-in-vectors compiler)))
+      (convert-custom-prop-value compiler props)
 
       (.-custom id-class)
       (t/convert-custom-prop-value props)
 
-      (ep/convert-props-in-vectors? compiler)
-      (convert-prop-value props)
+      (some? (ep/convert-props-in-vectors compiler))
+      (convert-prop-value compiler props false)
 
       :else
       (t/convert-prop-value props))))

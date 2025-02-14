@@ -131,7 +131,7 @@
 
 (defrecord ExtendedCompiler
   [id fn-to-element parse-fn
-   ^js/Object js-component-libs convert-props-in-vectors? kebab-case-component-names?]
+   ^js/Object js-component-libs convert-props-in-vectors kebab-case-component-names?]
   p/Compiler
   (get-id [this] id)
   (parse-tag [this tag-name tag-value]
@@ -148,5 +148,5 @@
   (get-component-from-lib [this tag]
     (get-component-from-lib-memo this tag kebab-case-component-names?))
 
-  (convert-props-in-vectors? [this]
-    convert-props-in-vectors?))
+  (convert-props-in-vectors [this]
+    convert-props-in-vectors))

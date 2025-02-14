@@ -3,7 +3,7 @@
             [reagent.impl.template :as t]))
 
 (defn create
-  [{:keys [function-components js-component-libs convert-props-in-vectors? kebab-case-component-names?]
+  [{:keys [function-components js-component-libs convert-props-in-vectors kebab-case-component-names?]
     :or   {js-component-libs {}}
     :as   opts}]
   (let [id             (gensym "reagent-extended-compiler")
@@ -17,5 +17,5 @@
      fn-to-element
      parse-fn
      component-libs
-     convert-props-in-vectors?
+     convert-props-in-vectors
      kebab-case-component-names?)))
