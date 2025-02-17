@@ -5,12 +5,17 @@
             [reagent.impl.template :as t]
             [reagent.impl.util :as util]))
 
+(def prop-to-convert?
+  (memoize
+   (fn [compiler k]
+     (gobj/get (ep/convert-props-in-vectors compiler) (name k)))))
+
 (declare convert-prop-value)
 
 (defn kv-conv [compiler convert-in-vector? o k v]
   (doto o
     (gobj/set (t/cached-prop-name k) (if (or convert-in-vector?
-                                             (contains? (ep/convert-props-in-vectors compiler) k))
+                                             (prop-to-convert? compiler k))
                                        (convert-prop-value compiler v true)
                                        (convert-prop-value compiler v false)))))
 
@@ -27,7 +32,7 @@
 
 (defn custom-kv-conv [compiler o k v]
   (doto o
-    (gobj/set (t/cached-custom-prop-name k) (if (contains? (ep/convert-props-in-vectors compiler) k)
+    (gobj/set (t/cached-custom-prop-name k) (if (prop-to-convert? compiler k)
                                               (convert-prop-value compiler v true)
                                               (convert-prop-value compiler v false)))))
 
