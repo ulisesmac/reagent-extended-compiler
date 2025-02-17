@@ -113,21 +113,20 @@
 (def get-component-from-lib-memo
   (memoize
    (fn [this tag kebab-case-names?]
-     (time
-      (cond
-        (string/includes? tag "/")
-        (let [[lib component-name] (string/split tag #"/")]
-          (gobj/get (gobj/get (ep/js-component-libs this) lib) (if kebab-case-names?
-                                                                 (csk/->PascalCase component-name)
-                                                                 component-name)))
+     (cond
+       (string/includes? tag "/")
+       (let [[lib component-name] (string/split tag #"/")]
+         (gobj/get (gobj/get (ep/js-component-libs this) lib) (if kebab-case-names?
+                                                                (csk/->PascalCase component-name)
+                                                                component-name)))
 
-        (.hasOwnProperty (ep/js-component-libs this) "root")
-        (gobj/get (.-root (ep/js-component-libs this)) (if kebab-case-names?
-                                                         (csk/->PascalCase tag)
-                                                         tag))
+       (.hasOwnProperty (ep/js-component-libs this) "root")
+       (gobj/get (.-root (ep/js-component-libs this)) (if kebab-case-names?
+                                                        (csk/->PascalCase tag)
+                                                        tag))
 
-        :else
-        tag)))))
+       :else
+       tag))))
 
 (defrecord ExtendedCompiler
   [id fn-to-element parse-fn
