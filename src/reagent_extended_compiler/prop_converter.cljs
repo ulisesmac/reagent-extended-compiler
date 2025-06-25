@@ -37,14 +37,17 @@
                                               (convert-prop-value compiler v false)))))
 
 (defn convert-custom-prop-value [compiler x]
-  (cond
-    (util/js-val? x) x
-    (util/named? x)  (name x)
-    (map? x)         (reduce-kv (partial custom-kv-conv compiler) #js{} x)
-    (coll? x)        (clj->js x)
-    (ifn? x)         (fn [& args]
-                       (apply x args))
-    :else            (clj->js x)))
+  (let [{:keys [keep-items]} (meta x)]
+    (cond
+      (util/js-val? x) x
+      (util/named? x)  (name x)
+      (map? x)         (reduce-kv (partial custom-kv-conv compiler) #js{} x)
+      (and (coll? x)
+           keep-items) (to-array x)
+      (coll? x)        (clj->js x)
+      (ifn? x)         (fn [& args]
+                         (apply x args))
+      :else            (clj->js x))))
 
 
 (defn convert-props [props ^clj id-class compiler]
