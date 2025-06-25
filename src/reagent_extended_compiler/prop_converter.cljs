@@ -21,8 +21,6 @@
 
 (defn convert-prop-value [compiler x convert-in-vector?]
   (let [{:keys [keep-items]} (meta x)]
-    (when keep-items
-      (println "KEEP ITEMS FOUND!!! 2" (prn-str x)))
     (cond
       (util/js-val? x)  x
       (util/named? x)   (name x)
@@ -44,9 +42,6 @@
 
 (defn convert-custom-prop-value [compiler x]
   (let [{:keys [keep-items]} (meta x)]
-    (when keep-items
-      (println "KEEP ITEMS FOUND!!! 1" (prn-str x)))
-
     (cond
       (util/js-val? x) x
       (util/named? x)  (name x)
