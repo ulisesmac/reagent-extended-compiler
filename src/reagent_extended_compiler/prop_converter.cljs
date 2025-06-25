@@ -20,15 +20,21 @@
                                        (convert-prop-value compiler v false)))))
 
 (defn convert-prop-value [compiler x convert-in-vector?]
-  (cond
-    (util/js-val? x) x
-    (util/named? x) (name x)
-    (map? x) (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
-    (and convert-in-vector? (vector? x)) (extended.utils/map-array #(convert-prop-value compiler % true) x)
-    (coll? x) (clj->js x)
-    (ifn? x) (fn [& args]
-               (apply x args))
-    :else (clj->js x)))
+  (let [{:keys [keep-items]} (meta x)]
+    (when keep-items
+      (println "KEEP ITEMS FOUND!!! 2" (prn-str x)))
+    (cond
+      (util/js-val? x)  x
+      (util/named? x)   (name x)
+      (map? x)          (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
+      (and convert-in-vector?
+           (vector? x)) (extended.utils/map-array #(convert-prop-value compiler % true) x)
+      (and (coll? x)
+           keep-items)  (to-array x)
+      (coll? x)         (clj->js x)
+      (ifn? x)          (fn [& args]
+                          (apply x args))
+      :else             (clj->js x))))
 
 (defn custom-kv-conv [compiler o k v]
   (doto o
@@ -38,6 +44,9 @@
 
 (defn convert-custom-prop-value [compiler x]
   (let [{:keys [keep-items]} (meta x)]
+    (when keep-items
+      (println "KEEP ITEMS FOUND!!! 1" (prn-str x)))
+
     (cond
       (util/js-val? x) x
       (util/named? x)  (name x)
