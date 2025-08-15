@@ -12,3 +12,4 @@ pom.xml.asc
 /.idea/.gitignore
 /.idea/
 /reagent-extended-compiler.iml
+/.cpcache/

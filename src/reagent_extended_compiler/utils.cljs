@@ -1,4 +1,6 @@
-(ns reagent-extended-compiler.utils)
+
+(ns reagent-extended-compiler.utils
+  (:require-macros [reagent-extended-compiler.utils :refer [style defstyle]]))
 
 (defn map-array [f coll]
   (let [js-array ^js (array)]

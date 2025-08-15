@@ -35,7 +35,7 @@
                            (meta argv)))))
       (do
         (when-some [key (-> (meta argv) util/get-react-key)]
-          (set! (.-key jsprops) key))
+          (set! (.-key ^js jsprops) key))
         (if (string? component)
           (p/make-element compiler argv (ep/get-component-from-lib compiler component) jsprops first-child)
           (p/make-element compiler argv component jsprops first-child))))))
@@ -43,7 +43,7 @@
 (defn hiccup-element [v compiler]
   (let [tag (nth v 0 nil)
         n   (if (and (keyword? tag) (namespace tag))
-              (.-fqn tag)
+              (.-fqn ^js tag)
               (name tag))
         pos (.indexOf n ">")]
     (case pos
