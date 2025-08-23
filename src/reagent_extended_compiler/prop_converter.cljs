@@ -20,19 +20,18 @@
                                        (convert-prop-value compiler v false)))))
 
 (defn convert-prop-value [compiler x convert-in-vector?]
-  (let [{:keys [keep-items]} (meta x)]
-    (cond
-      (util/js-val? x)  x
-      (util/named? x)   (name x)
-      (map? x)          (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
-      (and convert-in-vector?
-           (vector? x)) (extended.utils/map-array #(convert-prop-value compiler % true) x)
-      (and (coll? x)
-           keep-items)  (to-array x)
-      (coll? x)         (clj->js x)
-      (ifn? x)          (fn [& args]
-                          (apply x args))
-      :else             (clj->js x))))
+  (cond
+    (util/js-val? x) x
+    (util/named? x) (name x)
+    (map? x) (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
+    (and convert-in-vector?
+         (vector? x)) (extended.utils/map-array #(convert-prop-value compiler % true) x)
+    (and (coll? x)
+         (:keep-items (meta x))) (to-array x)
+    (coll? x) (clj->js x)
+    (ifn? x) (fn [& args]
+               (apply x args))
+    :else (clj->js x)))
 
 (defn custom-kv-conv [compiler o k v]
   (doto o
@@ -41,17 +40,16 @@
                                               (convert-prop-value compiler v false)))))
 
 (defn convert-custom-prop-value [compiler x]
-  (let [{:keys [keep-items]} (meta x)]
-    (cond
-      (util/js-val? x) x
-      (util/named? x)  (name x)
-      (map? x)         (reduce-kv (partial custom-kv-conv compiler) #js{} x)
-      (and (coll? x)
-           keep-items) (to-array x)
-      (coll? x)        (clj->js x)
-      (ifn? x)         (fn [& args]
-                         (apply x args))
-      :else            (clj->js x))))
+  (cond
+    (util/js-val? x) x
+    (util/named? x) (name x)
+    (map? x) (reduce-kv (partial custom-kv-conv compiler) #js{} x)
+    (and (coll? x)
+         (:keep-items (meta x))) (to-array x)
+    (coll? x) (clj->js x)
+    (ifn? x) (fn [& args]
+               (apply x args))
+    :else (clj->js x)))
 
 
 (defn convert-props [props ^clj id-class compiler]
