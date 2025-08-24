@@ -1,7 +1,7 @@
 (ns reagent-extended-compiler.prop-converter
   (:require [goog.object :as gobj]
             [reagent-extended-compiler.protocols :as ep]
-            [reagent-extended-compiler.utils :as extended.utils]
+            [reagent-extended-compiler.utils.transforms.impl :as transforms-impl]
             [reagent.impl.template :as t]
             [reagent.impl.util :as util]))
 
@@ -25,7 +25,7 @@
     (util/named? x) (name x)
     (map? x) (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
     (and convert-in-vector?
-         (vector? x)) (extended.utils/map-array #(convert-prop-value compiler % true) x)
+         (vector? x)) (transforms-impl/map-array #(convert-prop-value compiler % true) x)
     (and (coll? x)
          (:keep-items (meta x))) (to-array x)
     (coll? x) (clj->js x)

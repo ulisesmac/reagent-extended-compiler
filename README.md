@@ -2,9 +2,10 @@
 
 A Clojure library designed to ... well, that part is up to you.
 
-## Usage
+## Dev Usage (deps.edn)
 
-FIXME
+- Start a CLJS Node REPL with dev deps: `clj -M:dev -m cljs.main -re node`
+- Add as a library in another deps.edn project via local/root or git.
 
 ## License
 

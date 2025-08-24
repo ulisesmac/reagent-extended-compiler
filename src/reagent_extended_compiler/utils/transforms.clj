@@ -1,4 +1,4 @@
-(ns reagent-extended-compiler.utils
+(ns reagent-extended-compiler.utils.transforms
   (:require [clojure.string :as str]))
 
 (defn- capitalize-first [^String s]
