@@ -1,126 +1,262 @@
-# Reagent Extended Compiler
+# reagent-extended-compiler
 
-A drop-in Reagent compiler that makes CLJS-first UI ergonomic.
-Works anywhere Reagent runs (web and React Native); React Native users benefit most:
+Custom Reagent compiler for CLJS-first interop.
 
-- CLJS maps for props/styles with kebab-case keys auto-converted to camelCase.
-- Optional conversion of vectors within props (e.g., `:style`, `:transform`).
-- Component library lookup (e.g., `:rn/view` resolved from a JS lib map).
-- Handy transforms: `style`/`defstyle` macros and `->js-prop-obj` at runtime.
+This library keeps Hiccup syntax, while making JS component and JS prop interop
+more ergonomic and predictable.
+
+## What it provides
+
+- Use JS components directly from Hiccup tags.
+  - Example: `:rn/view`, `:gh/flat-list`, `:ui/button`
+- Write props as normal CLJS data, with kebab-case keys.
+  - They are converted to JS-style prop keys automatically.
+- Enable deep conversion for maps inside selected vector props.
+  - Example keys: `:style`, `:transform`, `:series`
+- Keep CLJS map items when passing arrays to JS components.
+  - Use `^:keep-items` when callbacks should receive CLJS maps (not JS objects).
 
 ## Install
-
-- deps.edn (example in a monorepo):
 
 ```clojure
 {:deps {reagent/reagent                                     {:mvn/version "1.3.0"}
         reagent-extended-compiler/reagent-extended-compiler {:local/root "reagent-extended-compiler"}}}
 ```
 
-## Setup
+## Quick start
 
-Create and set the compiler once at app startup. Configure:
-
-- `:js-component-libs`: where tags resolve from (root and named libs).
-- `:convert-props-in-vectors`: props whose vector values should be converted item-wise.
-- `:kebab-case-component-names?`: convert `:rn/linear-gradient` → `LinearGradient`.
-- Load order: require your setup ns first in your app entry (or add to Shadow CLJS `:preloads`).
-
-Setup namespace:
+Create one compiler instance, set it as default once at app startup, and
+require that setup namespace before rendering.
 
 ```clojure
 (ns app.reagent-compiler-setup
   (:require [reagent.core :as r]
             [reagent-extended-compiler.core :as rec]
-            ["react-native" :as rn]
-            ["react-native-gesture-handler" :as gh]
-            ["react-native-linear-gradient" :default LinearGradient]))
+            ["my-ui-lib" :as ui-lib]
+            ["my-gesture-lib" :as gesture-lib]
+            ["my-animation-lib" :as animation-lib]))
 
 (defonce compiler
   (rec/create
-   {:function-components         true ;; The one from reagent
+   {:function-components         true
+    ;; Reagent function-component path (recommended default).
     :kebab-case-component-names? true
+    ;; :rn/linear-gradient -> ui-lib.LinearGradient
+    :js-component-libs           {;; :rn/view -> ui-lib.View
+                                  :rn       ui-lib
+                                  ;; :gh/gesture-detector -> gesture-lib.GestureDetector
+                                  :gh       gesture-lib
+                                  ;; :animated/view -> animation-lib.View
+                                  :animated animation-lib}
     :convert-props-in-vectors    #{:style :content-container-style :transform}
-    :js-component-libs           {:root            rn             ;; :view, :text, ...
-                                  :rn              rn             ;; :rn/view, :rn/text, ...
-                                  :gh              gh             ;; gesture-handler
-                                  :linear-gradient #js{:View LinearGradient}}}))
+    ;; Reagent already supports vector values.
+    ;; This option controls deep key conversion for maps inside vectors
+    ;; for these selected prop keys.
+    }))
 
 (r/set-default-compiler! compiler)
 ```
 
-Entry point (require first):
-
 ```clojure
 (ns app.core
   (:require
-   [app.reagent-compiler-setup]   ;; keep this first so the compiler is set
-   ...
-   [reagent.core :as r]
-   [reagent.dom :as rdom]))       ;; or RN root
+   [app.reagent-compiler-setup]
+   [reagent.core :as r]))
 ```
 
-## Usage
+## Common configuration patterns
 
-With the compiler set, Hiccup becomes data-first and concise:
+Use these as small templates depending on your app shape.
+
+Unqualified tags (`:view`, `:text`) via `:root`:
 
 ```clojure
-[:rn/view {:style {:padding-horizontal 16
-                   :row-gap            8}}
- [:rn/text {:style {:font-weight :bold}} "Hello"]]
+(rec/create
+ {:function-components true
+  :js-component-libs   {:root ui-lib}})
 ```
 
-Vectors inside props (e.g., `:transform`) are converted when listed in
-`:convert-props-in-vectors`:
+Aliased libraries plus irregular export names:
 
 ```clojure
-[:rn/view {:style {:transform [{:translate-x 10}
-                               {:translate-y 6}]}}]
+(rec/create
+ {:kebab-case-component-names? true
+  :js-component-libs           {:ui    ui-lib
+                                :gh    gesture-lib
+                                ;; explicit mapping when export name is not predictable
+                                :icons #js{:Search SearchIcon
+                                           :Close  CloseIcon}}})
 ```
 
-### Styles and Transforms
-
-Use the macros and runtime helper from `utils.transforms`.
+Vector-prop deep conversion:
 
 ```clojure
-(ns ui.styles
-  (:require [reagent-extended-compiler.utils.transforms :refer [defstyle]]
-            [reagent.core :as r]))
-
-;; Macro: compile-time conversion to JS object
-(defstyle base-padding {:padding-left 12 :padding-right 12})
-
+(rec/create
+ {:convert-props-in-vectors #{:style :transform :series}})
 ```
 
-### Keep Items (preserve CLJS maps)
+## What it does
 
-By default, collections inside props are converted with `clj->js`, so nested maps
-become plain JS objects (and round-tripping back loses keyword namespaces).
+### 1) Component lookup from JS libs
 
-Add metadata `{:keep-items true}` to a collection to keep its items as-is (CLJS data)
-while only wrapping the outer collection as a JS array:
+With `:js-component-libs`, tags are resolved from configured libraries:
+
+- `:rn/view` resolves from the `:rn` library
+- `:gh/gesture-detector` resolves from the `:gh` library
+- `:view` resolves from `:root` when `:root` is configured
+
+When `:kebab-case-component-names?` is `true`, component names are converted to
+PascalCase before lookup:
+
+- `:rn/linear-gradient` -> `LinearGradient`
+- `:gh/gesture-detector` -> `GestureDetector`
+
+### 2) Prop key/value conversion
+
+Props are converted recursively for JS interop:
+
+- map keys are converted to JS prop names
+- keywords/named values become strings
+- maps and collections become JS values
+- functions are wrapped so they can be called from JS
+
+### 3) Deep conversion inside vector props
+
+Reagent already supports vectors. This library adds optional deep conversion for
+maps nested inside vectors, selected by `:convert-props-in-vectors`.
+
+Example:
 
 ```clojure
-(def items ^:keep-items[{:user/id 1} {:user/id 2}])
-
-[:rn/flat-list {:data        items
-                :key-extractor (fn [m _] (str (:user/id m)))
-                :render-item (fn [m]
-                               (let [item (.-item m)]  ; item is the original CLJS map
-                                 [:rn/text (pr-str (:user/id item))]))}]
+;; with :convert-props-in-vectors containing :style and :series
+[:ui/line-chart
+ {:series [{:line-width 2}
+           {:line-width 1}]
+  :style  {:transform [{:translate-x 10}
+                       {:translate-y 6}]}}]
 ```
 
-This preserves CLJS maps (including keyword namespaces) across React component boundaries
-without re-converting JS→CLJ.
+In the example above, nested keys such as `:line-width` and `:translate-x` are
+converted for JS props in those vector items.
 
-### Component lookup
+### 4) Keep CLJS items in JS arrays (`^:keep-items`)
 
-When `:js-component-libs` is configured, tags are resolved from your JS libs:
+Without metadata, collection items are converted deeply to JS.
 
-- `:view` or `:text` resolve from `:root`.
-- `:rn/view` or `:rn/text` resolve from the `:rn` lib.
-- With `:kebab-case-component-names? true`, names are converted (e.g., `:rn/linear-gradient` → `LinearGradient`).
+With `^:keep-items`, the outer collection is converted to a JS array, but each
+item stays as original CLJS data.
+
+React Native, without `^:keep-items`:
+
+```clojure
+(def rows [{:id 1 :name "Ada"}])
+
+[:rn/flat-list
+ {:data        rows
+  :render-item (fn [^js x]
+                 (let [item (.-item x)] ; JS object
+                   [:rn/text (aget item "name")]))}]
+```
+
+React Native, with `^:keep-items`:
+
+```clojure
+(def rows ^:keep-items [{:id 1 :name "Ada"}])
+
+[:rn/flat-list
+ {:data        rows
+  :render-item (fn [^js x]
+                 (let [item (.-item x)] ; CLJS map
+                   [:rn/text (:name item)]))}]
+```
+
+Web interop callback, without `^:keep-items`:
+
+```clojure
+;; Assume :ui/web-list is a JS component from :js-component-libs
+;; and it calls :on-select with an item from :items.
+(def rows [{:id 1 :name "Ada"}])
+
+[:ui/web-list
+ {:items     rows
+  :on-select (fn [item] ; JS object
+               (js/console.log (aget item "name")))}]
+```
+
+Web interop callback, with `^:keep-items`:
+
+```clojure
+(def rows ^:keep-items [{:id 1 :name "Ada"}])
+
+[:ui/web-list
+ {:items     rows
+  :on-select (fn [item] ; CLJS map
+               (js/console.log (:name item)))}]
+```
+
+## Utilities
+
+### `style` and `defstyle` (macros)
+
+Compile-time map transformation to JS-style objects.
+
+```clojure
+(ns user
+  (:require [reagent-extended-compiler.utils.transforms :refer [defstyle style]]))
+
+(defstyle row
+  {:flex-direction :row
+   :align-items    :center
+   :column-gap     8})
+;; row (shape):
+;; #js {:flexDirection "row"
+;;      :alignItems    "center"
+;;      :columnGap     8}
+
+(def dynamic
+  (style {:transform [{:translate-x 10}
+                      {:scale 0.98}]}))
+;; dynamic (shape):
+;; #js {:transform #js [#js {:translateX 10}
+;;                      #js {:scale 0.98}]}
+```
+
+### `->js-prop-obj` (runtime helper)
+
+Convert a CLJS map into a JS prop object at runtime:
+
+```clojure
+(require '[reagent-extended-compiler.utils.transforms :as transforms])
+
+(def opts
+  (transforms/->js-prop-obj
+   {:line-width 2
+    :legend     {:position :bottom}
+    :padding    [8 12]}))
+;; opts (shape):
+;; #js {:lineWidth 2
+;;      :legend    #js {:position "bottom"}
+;;      :padding   #js [8 12]}
+```
+
+## Configuration reference
+
+`reagent-extended-compiler.core/create` accepts:
+
+- `:function-components`
+  - `true` to use Reagent function-component path
+- `:js-component-libs`
+  - map of alias -> JS module/object
+  - optional `:root` for unqualified tags like `:view`
+- `:kebab-case-component-names?`
+  - `true` to resolve component names as PascalCase
+- `:convert-props-in-vectors`
+  - set of prop keys where map keys inside vector values should also be
+    converted
 
 ## Notes
 
-- Add keys to `:convert-props-in-vectors` for any prop that contains vectors/arrays.
+- Reagent already handles vectors. `:convert-props-in-vectors` is specifically
+  for deeper key conversion of maps nested inside selected vector props.
+- `->js-prop-obj` uses the current default compiler, so behavior (including
+  vector-prop conversion) follows your configured compiler options.
