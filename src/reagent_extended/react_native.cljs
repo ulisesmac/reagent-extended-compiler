@@ -1,6 +1,6 @@
 (ns reagent-extended.react-native
   (:require
-   ["react-native" :refer [Dimensions NativeModules Platform useColorScheme useWindowDimensions]]
+   ["react-native" :refer [Dimensions NativeModules Platform StyleSheet useColorScheme useWindowDimensions]]
    [applied-science.js-interop :as j]
    [clojure.string :as string]))
 
@@ -8,6 +8,7 @@
 (def platform-os (keyword "platform" (j/get platform :OS)))
 (def android? (= platform-os :platform/android))
 (def ios? (= platform-os :platform/ios))
+(def style-sheet-absolute-fill (j/get StyleSheet :absoluteFill))
 
 (defn use-color-scheme []
   (let [color-scheme (or (useColorScheme) "light")]
