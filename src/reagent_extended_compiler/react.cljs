@@ -11,7 +11,7 @@
         js/undefined))))
 
 (defn dep-value [x]
-  (if (keyword? x) (name x) x))
+  (if (keyword? x) (.-fqn x) x))
 
 (defn deps-array
   "Convert hook deps to a JS array, naming keywords and leaving other values as-is."
