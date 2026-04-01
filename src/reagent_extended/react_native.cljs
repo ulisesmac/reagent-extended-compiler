@@ -1,10 +1,12 @@
 (ns reagent-extended.react-native
   (:require
-   ["react-native" :refer [Dimensions NativeModules Platform StyleSheet useColorScheme useWindowDimensions]]
+   ["react-native" :refer [Dimensions Keyboard NativeModules Platform StyleSheet useColorScheme useWindowDimensions]]
    [applied-science.js-interop :as j]
    [clojure.string :as string]))
 
 (def platform Platform)
+(def keyboard Keyboard)
+(def keyboard-dismiss! (.-dismiss Keyboard))
 (def platform-os (keyword "platform" (j/get platform :OS)))
 (def android? (= platform-os :platform/android))
 (def ios? (= platform-os :platform/ios))
