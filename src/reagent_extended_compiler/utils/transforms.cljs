@@ -13,9 +13,10 @@
   (prop-converter/convert-custom-prop-value template/*current-default-compiler* m))
 
 (defn- compose-styles-process [result entry]
-  (if (vector? entry)
-    (reduce compose-styles-process result entry)
-    (conj! result entry)))
+  (cond
+    (vector? entry) (reduce compose-styles-process result entry)
+    (nil? entry)    result
+    :else           (conj! result entry)))
 
 (defn add-styles
   "Compose a vector of style entries from various runtime values. Accepts
