@@ -18,20 +18,23 @@
                                              (prop-to-convert? compiler k))
                                        (convert-prop-value compiler v true)
                                        (convert-prop-value compiler v false)))))
+(defn reanimated-val? [v]
+  (gobj/get v "_isReanimatedSharedValue"))
 
 (defn convert-prop-value [compiler x convert-in-vector?]
   (cond
-    (util/js-val? x) x
-    (util/named? x) (name x)
-    (map? x) (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
+    (or (util/js-val? x)
+        (reanimated-val? x))     x
+    (util/named? x)              (name x)
+    (map? x)                     (reduce-kv (partial kv-conv compiler convert-in-vector?) #js {} x)
     (and convert-in-vector?
-         (vector? x)) (transforms-impl/map-array #(convert-prop-value compiler % true) x)
+         (vector? x))            (transforms-impl/map-array #(convert-prop-value compiler % true) x)
     (and (coll? x)
          (:keep-items (meta x))) (to-array x)
-    (coll? x) (clj->js x)
-    (ifn? x) (fn [& args]
-               (apply x args))
-    :else (clj->js x)))
+    (coll? x)                    (clj->js x)
+    (ifn? x)                     (fn [& args]
+                                   (apply x args))
+    :else                        (clj->js x)))
 
 (defn custom-kv-conv [compiler o k v]
   (doto o
@@ -41,7 +44,8 @@
 
 (defn convert-custom-prop-value [compiler x]
   (cond
-    (util/js-val? x) x
+    (or (util/js-val? x)
+        (reanimated-val? x)) x
     (util/named? x) (name x)
     (map? x) (reduce-kv (partial custom-kv-conv compiler) #js{} x)
     (and (coll? x)

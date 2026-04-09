@@ -78,10 +78,13 @@
 
         :else (fn-to-element tag v compiler)))))
 
+(defn reanimated-val? [v]
+  (gobj/get v "_isReanimatedSharedValue"))
 
 (defn as-element [this x fn-to-element]
   (cond
-    (util/js-val? x)                x
+    (or (util/js-val? x)
+        (reanimated-val? x))                x
     (vector? x)                     (vec-to-elem x this fn-to-element)
     (seq? x)                        (if (dev?)
                                       (t/expand-seq-check x this)
