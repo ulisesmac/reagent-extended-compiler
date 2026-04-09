@@ -44,6 +44,12 @@
   [name m]
   `(def ~name ~(emit-style m)))
 
+(defmacro defprop
+  "Defines a CLJS var bound to `(style m)`.
+   Usage: (defprop my-prop {:font-size 14})"
+  [name m]
+  `(def ~name ~(emit-style m)))
+
 (comment
 
  (macroexpand-1 '(style {:padding-left    24
