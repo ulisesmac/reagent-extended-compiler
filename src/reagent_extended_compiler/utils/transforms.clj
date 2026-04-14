@@ -44,6 +44,13 @@
   [name m]
   `(def ~name ~(emit-style m)))
 
+(defmacro prop
+  "Macro that takes a CLJS map and expands into an expression that creates a
+   JS object with camelCased keys. All key-name conversions happen at macro
+   time in CLJ; values are left as expressions for CLJS to evaluate."
+  [m]
+  (emit-style m))
+
 (defmacro defprop
   "Defines a CLJS var bound to `(style m)`.
    Usage: (defprop my-prop {:font-size 14})"
