@@ -1,6 +1,7 @@
 (ns reagent-extended.react-native
   (:require
-   ["react-native" :refer [Dimensions Keyboard NativeModules Platform StyleSheet useColorScheme useWindowDimensions]]
+   ["react-native" :refer [Alert Dimensions Keyboard NativeModules Platform StyleSheet
+                           useColorScheme useWindowDimensions]]
    [applied-science.js-interop :as j]
    [cljs-bean.core :refer [->clj]]
    [clojure.string :as string]))
@@ -55,3 +56,60 @@
         [lang region] (string/split locale #"_")]
     {:lang   (keyword :lang lang)
      :region region}))
+
+(defn- button->js [{:keys [is-preferred on-press style text]}]
+  (cond-> #js {:text text}
+    on-press (j/assoc! :onPress on-press)
+    style (j/assoc! :style style)
+    (some? is-preferred) (j/assoc! :isPreferred is-preferred)))
+
+(defn- theme->ui-style [theme]
+  (case theme
+    :theme/dark "dark"
+    :theme/light "light"
+    nil))
+
+(defn- options->js [{:keys [cancelable on-dismiss theme user-interface-style]}]
+  (let [user-interface-style (or user-interface-style
+                                 (theme->ui-style theme))]
+    (cond-> #js {}
+      (some? cancelable) (j/assoc! :cancelable cancelable)
+      on-dismiss (j/assoc! :onDismiss on-dismiss)
+      user-interface-style (j/assoc! :userInterfaceStyle user-interface-style))))
+
+(defn alert
+  "Show a native `Alert.alert` dialog from a props map.
+
+  Props:
+  - `:title` string
+  - `:message` optional string
+  - `:theme` optional app theme keyword such as `:theme/light` or `:theme/dark`
+  - `:buttons` optional vector of button maps with:
+    - `:text` string
+    - `:on-press` callback
+    - `:style` one of \"default\", \"cancel\", or \"destructive\"
+    - `:is-preferred` iOS-only boolean
+  - `:options` optional map with:
+    - `:cancelable` Android-only boolean
+    - `:on-dismiss` Android-only callback
+    - `:user-interface-style` iOS-only string
+
+  Example:
+  (alert {:title   \"Detener viaje\"
+          :message \"¿Seguro que quieres detener el viaje?\"
+          :theme   :theme/dark
+          :buttons [{:text  \"Cancelar\"
+                     :style \"cancel\"}
+                    {:text     \"Detener\"
+                     :style    \"destructive\"
+                     :on-press stop!}]
+          :options {:cancelable true}})"
+  [{:keys [buttons message options theme title]}]
+  (j/call Alert
+          :alert
+          title
+          message
+          (when buttons
+            (into-array (map button->js buttons)))
+          (when options
+            (options->js (assoc options :theme theme)))))
