@@ -1,6 +1,6 @@
 (ns reagent-extended.react-native
   (:require
-   ["react-native" :refer [Alert Dimensions Keyboard NativeModules Platform StyleSheet
+   ["react-native" :refer [Alert BackHandler Dimensions Keyboard NativeModules Platform StyleSheet
                            useColorScheme useWindowDimensions]]
    [applied-science.js-interop :as j]
    [cljs-bean.core :refer [->clj]]
@@ -12,10 +12,13 @@
 (def ios? (= platform-os :platform/ios))
 
 (def keyboard Keyboard)
+(def back-handler BackHandler)
 (defn keyboard-metrics []
   (->clj (j/call keyboard :metrics)))
 (defn add-keyboard-listener! [evt f]
   (j/call keyboard :addListener (name evt) f))
+(defn add-back-handler-listener! [f]
+  (j/call back-handler :addEventListener "hardwareBackPress" f))
 (def keyboard-dismiss! (.-dismiss Keyboard))
 (defn keyboard-visible? []
   (j/call keyboard :isVisible))
