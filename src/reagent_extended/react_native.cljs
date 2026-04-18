@@ -95,18 +95,7 @@
   - `:options` optional map with:
     - `:cancelable` Android-only boolean
     - `:on-dismiss` Android-only callback
-    - `:user-interface-style` iOS-only string
-
-  Example:
-  (alert {:title   \"Detener viaje\"
-          :message \"¿Seguro que quieres detener el viaje?\"
-          :theme   :theme/dark
-          :buttons [{:text  \"Cancelar\"
-                     :style \"cancel\"}
-                    {:text     \"Detener\"
-                     :style    \"destructive\"
-                     :on-press stop!}]
-          :options {:cancelable true}})"
+    - `:user-interface-style` iOS-only string"
   [{:keys [buttons message options theme title]}]
   (j/call Alert
           :alert
