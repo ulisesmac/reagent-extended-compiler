@@ -23,6 +23,7 @@
 (defn keyboard-visible? []
   (j/call keyboard :isVisible))
 
+(def hairline-width (j/get StyleSheet :hairlineWidth))
 (def style-sheet-absolute-fill (j/get StyleSheet :absoluteFill))
 
 (defn use-color-scheme []
