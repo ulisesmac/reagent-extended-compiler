@@ -1,6 +1,6 @@
 (ns reagent-extended.react-native
   (:require
-   ["react-native" :refer [Alert BackHandler Dimensions Keyboard NativeModules Platform StyleSheet
+   ["react-native" :refer [Alert BackHandler Dimensions Keyboard NativeModules PermissionsAndroid Platform StyleSheet
                            useColorScheme useWindowDimensions]]
    [applied-science.js-interop :as j]
    [cljs-bean.core :refer [->clj]]
@@ -22,6 +22,20 @@
 (def keyboard-dismiss! (.-dismiss Keyboard))
 (defn keyboard-visible? []
   (j/call keyboard :isVisible))
+
+(def permissions-android PermissionsAndroid)
+
+(def android-permission
+  (j/lookup (j/get permissions-android :PERMISSIONS)))
+
+(def android-permission-result
+  (j/lookup (j/get permissions-android :RESULTS)))
+
+(defn permissions-android-check [permission]
+  (j/call permissions-android :check permission))
+
+(defn permissions-android-request [permission]
+  (j/call permissions-android :request permission))
 
 (def hairline-width (j/get StyleSheet :hairlineWidth))
 (def style-sheet-absolute-fill (j/get StyleSheet :absoluteFill))
