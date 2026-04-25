@@ -1,7 +1,7 @@
 (ns reagent-extended.react-native
   (:require
    ["react-native" :refer [Alert AppState BackHandler Dimensions Keyboard NativeModules PermissionsAndroid Platform
-                           StyleSheet useColorScheme useWindowDimensions]]
+                           Linking StyleSheet useColorScheme useWindowDimensions]]
    [applied-science.js-interop :as j]
    [cljs-bean.core :refer [->clj]]
    [clojure.string :as string]))
@@ -29,6 +29,9 @@
 
 (defn add-app-state-listener! [f]
   (j/call app-state :addEventListener "change" f))
+
+(defn open-url [link]
+  (j/call Linking :openURL link))
 
 (def android-version (j/get platform :Version))
 
